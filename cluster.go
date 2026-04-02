@@ -3,8 +3,10 @@ package rueidis
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -189,12 +191,17 @@ func (c *clusterClient) _refresh() (err error) {
 	c.mu.RLock()
 	results := make(chan clusterslots, len(c.conns))
 	pending := make([]conn, 0, len(c.conns))
-	for _, cc := range c.conns {
+	pendingAddrs := make([]string, 0, len(c.conns))
+	for addr, cc := range c.conns {
 		pending = append(pending, cc.conn)
+		pendingAddrs = append(pendingAddrs, addr)
 	}
+	prevConnsCount := len(c.conns)
 	c.mu.RUnlock()
 
 	var result clusterslots
+	queriedCount := 0
+	var lastErr error
 	for i := 0; i < cap(results); i++ {
 		if i&3 == 0 { // batch CLUSTER SLOTS/CLUSTER SHARDS for every 4 connections
 			for j := i; j < i+4 && j < len(pending); j++ {
@@ -205,16 +212,37 @@ func (c *clusterClient) _refresh() (err error) {
 		}
 		result = <-results
 		err = result.reply.Error()
+		queriedCount++
+		if err != nil {
+			lastErr = err
+		}
 		if len(result.reply.val.values()) != 0 {
 			break
 		}
 	}
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "rueidis _refresh: all queries failed, prevConns=%d, queried=%d, lastErr=%v, pendingAddrs=%v\n", prevConnsCount, queriedCount, lastErr, pendingAddrs)
 		return err
 	}
 	pending = nil
 
 	groups := result.parse(c.opt.TLSConfig != nil)
+
+	// Log refresh details
+	totalSlotsCovered := 0
+	for _, g := range groups {
+		for _, slot := range g.slots {
+			totalSlotsCovered += int(slot[1] - slot[0] + 1)
+		}
+	}
+	if len(groups) == 0 || totalSlotsCovered < 16384 {
+		fmt.Fprintf(os.Stderr, "rueidis _refresh: incomplete topology from %s, groups=%d, slotsCovered=%d/16384, prevConns=%d, lastErr=%v\n",
+			result.addr, len(groups), totalSlotsCovered, prevConnsCount, lastErr)
+	}
+	if len(groups) == 0 {
+		fmt.Fprintf(os.Stderr, "rueidis _refresh: EMPTY groups, skipping swap to prevent wipe. prevConns=%d, pendingAddrs=%v\n", prevConnsCount, pendingAddrs)
+		return nil
+	}
 	conns := make(map[string]connrole, len(groups))
 	for master, g := range groups {
 		conns[master] = connrole{conn: c.connFn(master, c.opt)}
@@ -321,7 +349,25 @@ func (c *clusterClient) _refresh() (err error) {
 		}
 	}
 
+	// Count assigned slots before swap
+	newAssigned := 0
+	for i := 0; i < 16384; i++ {
+		if wslots[i] != nil {
+			newAssigned++
+		}
+	}
+
 	c.mu.Lock()
+	prevAssigned := 0
+	for i := 0; i < 16384; i++ {
+		if c.wslots[i] != nil {
+			prevAssigned++
+		}
+	}
+	if newAssigned < prevAssigned {
+		fmt.Fprintf(os.Stderr, "rueidis _refresh: SLOT COVERAGE DROP from %d to %d slots, groups=%d, source=%s, prevConns=%d, newConns=%d\n",
+			prevAssigned, newAssigned, len(groups), result.addr, prevConnsCount, len(conns))
+	}
 	c.wslots = wslots
 	c.rslots = rslots
 	c.conns = conns
