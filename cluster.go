@@ -237,6 +237,8 @@ func (c *clusterClient) _refresh() (err error) {
 			totalSlotsCovered += int(slot[1] - slot[0] + 1)
 		}
 	}
+	fmt.Fprintf(os.Stderr, `{"level":"DEBUG","logger":"rueidis","msg":"_refresh","groups":%d,"slots_covered":%d,"prev_conns":%d,"source":"%s","queried":%d}`+"\n",
+		len(groups), totalSlotsCovered, prevConnsCount, result.addr, queriedCount)
 	if len(groups) == 0 || totalSlotsCovered < 16384 {
 		fmt.Fprintf(os.Stderr, `{"level":"WARN","logger":"rueidis","msg":"_refresh: incomplete topology","source":"%s","groups":%d,"slots_covered":%d,"prev_conns":%d,"last_err":"%v"}`+"\n",
 			result.addr, len(groups), totalSlotsCovered, prevConnsCount, lastErr)
