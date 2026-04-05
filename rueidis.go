@@ -310,6 +310,12 @@ type ClusterOption struct {
 	// Cluster topology cache refresh happens always in the background after a successful scan.
 	ShardsRefreshInterval time.Duration
 
+	// CloseOldConnsDelay is the delay before closing connections to nodes removed during topology refresh.
+	// This grace period allows in-flight commands to complete before connections are force-closed.
+	// Default: 5 seconds (hardcoded in cluster.go _refresh).
+	// This field is currently unused — the delay is hardcoded to 5s. Kept for future configurability.
+	CloseOldConnsDelay time.Duration
+
 	// MaxMovedRedirections is the maximum number of times to retry a command when receiving MOVED|ASK responses.
 	// If set to 0 (default), MOVED|ASK retries will continue until the context timeout.
 	// If set to a positive value, the client will return an error after that many MOVED|ASK redirects.
