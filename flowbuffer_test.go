@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/redis/rueidis/internal/cmds"
+	"github.com/khrystyna-terletska/rueidis-fork/internal/cmds"
 )
 
 //gocyclo:ignore

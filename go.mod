@@ -1,4 +1,4 @@
-module github.com/redis/rueidis
+module github.com/khrystyna-terletska/rueidis-fork
 
 go 1.24.9
 

@@ -13,7 +13,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/redis/rueidis/internal/util"
+	"github.com/khrystyna-terletska/rueidis-fork/internal/util"
 )
 
 const messageStructSize = int(unsafe.Sizeof(RedisMessage{}))

@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/redis/rueidis/internal/cmds"
-	"github.com/redis/rueidis/internal/util"
+	"github.com/khrystyna-terletska/rueidis-fork/internal/cmds"
+	"github.com/khrystyna-terletska/rueidis-fork/internal/util"
 )
 
 func newSentinelClient(opt *ClientOption, connFn connFn, retryer retryHandler) (client *sentinelClient, err error) {
