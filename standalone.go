@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/redis/rueidis/internal/cmds"
+	"github.com/khrystyna-terletska/rueidis-fork/internal/cmds"
 )
 
 func newStandaloneClient(opt *ClientOption, connFn connFn, retryer retryHandler) (*standalone, error) {

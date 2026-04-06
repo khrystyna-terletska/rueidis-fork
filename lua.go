@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/redis/rueidis/internal/util"
+	"github.com/khrystyna-terletska/rueidis-fork/internal/util"
 )
 
 // LuaOption is a functional option for configuring Lua script behavior.
